@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 import { Navbar } from './components/Layout/Navbar';
+import { WalletModal } from './components/WalletModal/WalletModal';
+import { WalletProvider, useWallet } from './contexts/WalletContext';
 import { HomePage } from './pages/HomePage';
 import { ListingsPage } from './pages/ListingsPage';
 import { PropertyDetailPage } from './pages/PropertyDetailPage';
@@ -8,15 +10,13 @@ import { FavoritesPage } from './pages/FavoritesPage';
 import { DashboardPage } from './pages/DashboardPage';
 
 const AppContent: React.FC = () => {
-  const [walletConnected, setWalletConnected] = useState(false);
+  const { isConnected } = useWallet();
   const [favorites, setFavorites] = useState(['1', '4']);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleConnectWallet = () => {
-    // Mock wallet connection with animation
-    setTimeout(() => {
-      setWalletConnected(!walletConnected);
-    }, 1000);
+    setIsWalletModalOpen(true);
   };
 
   const handleToggleFavorite = (propertyId: string) => {
@@ -35,7 +35,12 @@ const AppContent: React.FC = () => {
     <>
       <Navbar 
         onConnectWallet={handleConnectWallet}
-        walletConnected={walletConnected}
+        walletConnected={isConnected}
+      />
+      
+      <WalletModal 
+        isOpen={isWalletModalOpen}
+        onClose={() => setIsWalletModalOpen(false)}
       />
       
       <Routes>
@@ -75,7 +80,7 @@ const AppContent: React.FC = () => {
           path="/dashboard" 
           element={
             <DashboardPage 
-              walletConnected={walletConnected}
+              walletConnected={isConnected}
               onConnectWallet={handleConnectWallet}
             />
           } 
@@ -87,9 +92,11 @@ const AppContent: React.FC = () => {
 
 function App() {
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <WalletProvider>
+      <Router>
+        <AppContent />
+      </Router>
+    </WalletProvider>
   );
 }
 
