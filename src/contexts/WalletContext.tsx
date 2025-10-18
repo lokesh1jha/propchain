@@ -60,7 +60,11 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
       return;
     }
 
+    // Get actual MetaMask provider safely
     const ethereum = window.ethereum as any;
+
+    // Check if MetaMask is installed & this will even with Brave Wallet or others
+    // If multiple providers exist, find MetaMask
     const provider = ethereum?.providers
       ? ethereum.providers.find((p: any) => p.isMetaMask)
       : ethereum?.isMetaMask
