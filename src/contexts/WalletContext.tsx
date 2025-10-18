@@ -8,8 +8,14 @@ interface WalletProviderProps {
 }
 
 export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
-  const [account, setAccount] = useState<WalletAccount | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
+  // Initialize state from localStorage immediately
+  const [account, setAccount] = useState<WalletAccount | null>(() => {
+    const savedAddress = localStorage.getItem('walletAddress');
+    return savedAddress ? { address: savedAddress } : null;
+  });
+  const [isConnected, setIsConnected] = useState(() => {
+    return localStorage.getItem('walletConnected') === 'true';
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,9 +30,27 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
         const address = accounts[0];
         setAccount({ address });
         setIsConnected(true);
+      } else {
+        // MetaMask is not connected, but check localStorage for previous connection
+        const wasConnected = localStorage.getItem('walletConnected') === 'true';
+        const savedAddress = localStorage.getItem('walletAddress');
+        
+        if (wasConnected && savedAddress) {
+          // Restore state from localStorage even if MetaMask is not currently connected
+          setAccount({ address: savedAddress });
+          setIsConnected(true);
+        }
       }
     } catch (err) {
       console.error('Error checking wallet connection:', err);
+      // If MetaMask request fails, still try to restore from localStorage
+      const wasConnected = localStorage.getItem('walletConnected') === 'true';
+      const savedAddress = localStorage.getItem('walletAddress');
+      
+      if (wasConnected && savedAddress) {
+        setAccount({ address: savedAddress });
+        setIsConnected(true);
+      }
     }
   };
 
@@ -107,32 +131,26 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     localStorage.removeItem('walletAddress');
   };
 
-  // Check for existing connection on mount
+  // Verify connection with MetaMask on mount (if already connected from localStorage)
   useEffect(() => {
-    const checkExistingConnection = async () => {
-      // Wait for MetaMask to be ready
-      if (window.ethereum) {
+    const verifyConnection = async () => {
+      // Only verify if we're already connected from localStorage
+      if (isConnected && account && window.ethereum) {
         try {
-          // Check if MetaMask is ready
+          // Check if MetaMask is ready and still connected
           await window.ethereum.request({ method: 'eth_accounts' });
+          await checkWalletConnection();
         } catch (err) {
-          console.log('MetaMask not ready yet:', err);
-          return;
+          console.log('MetaMask verification failed, keeping localStorage state:', err);
+          // Keep the localStorage state even if MetaMask verification fails
         }
-      }
-
-      const wasConnected = localStorage.getItem('walletConnected') === 'true';
-      const savedAddress = localStorage.getItem('walletAddress');
-
-      if (wasConnected && savedAddress) {
-        await checkWalletConnection();
       }
     };
 
     // Add a small delay to ensure MetaMask is fully loaded
-    const timer = setTimeout(checkExistingConnection, 1000);
+    const timer = setTimeout(verifyConnection, 1000);
     return () => clearTimeout(timer);
-  }, []);
+  }, [isConnected, account]);
 
   // Listen for account changes
   useEffect(() => {

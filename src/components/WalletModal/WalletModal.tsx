@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Wallet, ExternalLink } from 'lucide-react';
+import { X, Wallet, ExternalLink, LogOut } from 'lucide-react';
 import { useWallet } from '../../contexts/WalletContext';
 
 interface WalletModalProps {
@@ -8,13 +8,13 @@ interface WalletModalProps {
 }
 
 export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => {
-  const { account, isConnected, isLoading, error, connectWallet } = useWallet();
+  const { account, isConnected, isLoading, error, connectWallet, disconnectWallet } = useWallet();
 
   const handleMetaMaskConnect = async () => {
     await connectWallet('metamask');
   };
 
-  // Close modal when connection is successful
+  // Close modal when connection is successful (only on initial connection)
   React.useEffect(() => {
     if (isConnected && account) {
       // Add a small delay to show the success state briefly
@@ -31,6 +31,11 @@ export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => 
 
   const handleInstallMetaMask = () => {
     window.open('https://metamask.io/download/', '_blank');
+  };
+
+  const handleDisconnect = () => {
+    disconnectWallet();
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -67,10 +72,18 @@ export const WalletModal: React.FC<WalletModalProps> = ({ isOpen, onClose }) => 
                 </div>
               </div>
               
-              <div className="text-center">
+              <div className="text-center space-y-4">
                 <p className="text-sm text-gray-600">
                   Your wallet is successfully connected!
                 </p>
+                
+                <button
+                  onClick={handleDisconnect}
+                  className="flex items-center justify-center space-x-2 px-4 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-red-200 hover:border-red-300"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Disconnect Wallet</span>
+                </button>
               </div>
             </div>
           ) : (
